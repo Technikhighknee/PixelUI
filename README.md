@@ -6,6 +6,18 @@ I built this for my own game and am sharing it as-is. It is not a polished, gene
 
 ---
 
+## Expectations
+
+This is developed alongside a game in active development. That means it changes frequently and will likely introduce breaking changes without warning. If you build something with it today, it may need migration tomorrow. That is not a bug — it is the nature of the project.
+
+Features that might appear over time, as the game needs them: accessibility and screen reader support, extensive controller and gamepad navigation, localization infrastructure, performance improvements for complex scenes. None of these are promised. They will exist if the game needs them. They might never exist if it doesn't.
+
+If you find it useful, you are welcome to watch the repo. But I would not build anything production-critical on top of it unless you are prepared to maintain your own fork. Which brings me to the next point.
+
+It is released under the Unlicense — public domain, no strings attached. Fork it, change it, strip out everything you don't need, call it something else entirely. I am not building a following here. I am building a game.
+
+---
+
 ## What it does
 
 Draws all UI via `_draw()` in virtual pixel coordinates. No Control nodes, no Godot theme system, no sizing surprises. If your project uses `canvas_items` stretch mode with a fixed base resolution, everything will be exactly the size you specify.
