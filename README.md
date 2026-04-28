@@ -14,6 +14,8 @@ Features that might appear over time, as the game needs them: accessibility and 
 
 If you find it useful, you are welcome to watch the repo. But I would not build anything production-critical on top of it unless you are prepared to maintain your own fork. Which brings me to the next point.
 
+There are no branches, no pull requests, no review process. Everything goes directly to main. If you are watching the repo, main is always the current state of what I am using in my game — no more, no less.
+
 It is released under the Unlicense — public domain, no strings attached. Fork it, change it, strip out everything you don't need, call it something else entirely. I am not building a following here. I am building a game.
 
 ---
