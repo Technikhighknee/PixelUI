@@ -96,7 +96,7 @@ func _process(_delta: float) -> void:
 | `toggle_ext(text, active_getter, callback)` | Toggle whose state is read externally — for radio groups |
 | `slider(min, max, value, callback)` | Draggable value control |
 | `bar(value_getter, color_getter?)` | Read-only filled bar, value 0..1 |
-| `row(children)` | Horizontal layout. Children are items or `{item, width/flex}` dicts. |
+| `row(children)` | Horizontal layout. Children are items, `make_fixed(item, px)`, or `make_flex(item, weight)` dicts. |
 | `grid(cols, rows, cell_size, ...)` | 2D clickable cell grid with per-cell draw callback |
 | `scroll(children, max_height)` | Scrollable item container |
 | `list(count, item_height, draw_fn, ...)` | Virtual list — only renders visible items |
@@ -129,13 +129,13 @@ ui.style = my_style
 
 ```gdscript
 ui.row([
-    {item = ui.make_button("−", on_minus), width = 12.0},  # fixed 12px
-    ui.make_label_live(func() -> String: return str(depth)),  # takes the rest
-    {item = ui.make_button("+", on_plus),  width = 12.0},  # fixed 12px
+    ui.make_fixed(ui.make_button("−", on_minus), 12.0),
+    ui.make_label_live(func() -> String: return str(depth)),
+    ui.make_fixed(ui.make_button("+", on_plus),  12.0),
 ])
 ```
 
-Fixed-width children are allocated first. Remaining space is divided proportionally among flex children.
+`make_fixed(item, width)` pins a child to an exact pixel width. `make_flex(item, weight)` gives a child a proportional share of remaining space (default weight 1.0). Fixed children are allocated first; remaining space is divided among flex children by weight. Plain items (no wrapper) are treated as flex with weight 1.0.
 
 ---
 

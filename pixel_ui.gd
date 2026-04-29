@@ -17,9 +17,9 @@ extends Node2D
 ##   ui.toggle("God mode", func(on: bool): god = on)
 ##   ui.label_live(func() -> String: return "HP: %d" % hp)
 ##   ui.row([
-##       {item = ui.make_button("−", fn_minus), width = 14.0},
+##       ui.make_fixed(ui.make_button("−", fn_minus), 14.0),
 ##       ui.make_label_live(func() -> String: return str(depth)),
-##       {item = ui.make_button("+", fn_plus),  width = 14.0},
+##       ui.make_fixed(ui.make_button("+", fn_plus),  14.0),
 ##   ])
 ##   ui.center()   # call AFTER adding all items
 ##
@@ -477,6 +477,18 @@ func make_row(children: Array) -> PixelUIRow:
 	r.children = children
 	return r
 
+
+## Convenience: wrap an item with a fixed pixel width for use in row().
+## ui.row([ui.make_fixed(btn, 14.0), label, ui.make_fixed(btn, 14.0)])
+func make_fixed(item: PixelUIItem, width: float) -> Dictionary:
+	return {item = item, width = width}
+
+
+## Convenience: wrap an item with a proportional flex weight for use in row().
+## Omit weight to get the default flex share of 1.0.
+func make_flex(item: PixelUIItem, weight: float = 1.0) -> Dictionary:
+	return {item = item, flex = weight}
+
 func make_button(text: String, on_press: Callable) -> PixelUIButton:
 	var item     := PixelUIButton.new()
 	item.text     = text
@@ -776,7 +788,9 @@ func _item_status(item: PixelUIItem, item_style: PixelUIStyle,
 			if label.text_getter.is_valid() else label.text
 		var text_size  := font.get_multiline_string_size(
 			label_text, HORIZONTAL_ALIGNMENT_LEFT, content_w, font_size)
-		var line_count := int(round(text_size.y / float(font_size))) if font_size > 0 else 1
+		var single_h   := font.get_multiline_string_size(
+			"A", HORIZONTAL_ALIGNMENT_LEFT, content_w, font_size).y
+		var line_count := int(round(text_size.y / single_h)) if single_h > 0.0 else 1
 		if line_count > 1:
 			warnings.append("[%s] wrapped to %d lines" % [label_text.left(20), line_count])
 			return "WRAPPED %d lines" % line_count
