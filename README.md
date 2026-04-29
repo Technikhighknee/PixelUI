@@ -96,7 +96,7 @@ func _process(_delta: float) -> void:
 | `toggle_ext(text, active_getter, callback)` | Toggle whose state is read externally — for radio groups |
 | `slider(min, max, value, callback)` | Draggable value control |
 | `bar(value_getter, color_getter?)` | Read-only filled bar, value 0..1 |
-| `row(children)` | Horizontal layout. Children are items, `make_fixed(item, px)`, or `make_flex(item, weight)` dicts. |
+| `row(children)` | Horizontal layout. Children are items, `make_fixed(item, px)`, or `make_flex(item, weight)` values. |
 | `grid(cols, rows, cell_size, ...)` | 2D clickable cell grid with per-cell draw callback |
 | `scroll(children, max_height)` | Scrollable item container |
 | `list(count, item_height, draw_fn, ...)` | Virtual list — only renders visible items |
