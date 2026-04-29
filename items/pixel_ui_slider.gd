@@ -70,8 +70,8 @@ func render(canvas: CanvasItem, style: PixelUIStyle, font: Font,
 
 
 func _normalised() -> float:
-	var range := max_val - min_val
-	return (value - min_val) / range if range > 0.0 else 0.0
+	var span := max_val - min_val
+	return (value - min_val) / span if span > 0.0 else 0.0
 
 
 func _disabled() -> bool:

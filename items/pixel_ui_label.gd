@@ -75,7 +75,8 @@ func render(canvas: CanvasItem, style: PixelUIStyle, _font: Font,
 		return
 	var font      := style.resolve_font(variant)
 	var font_size := _font_size(style)
-	var color     := _resolve_color(style)
+	@warning_ignore("shadowed_variable")
+	var color     := _resolve_color(style) 
 	var baseline  := Vector2(rect.position.x, rect.position.y + font_size)
 	canvas.draw_multiline_string(font, baseline, label_text,
 		align, rect.size.x, font_size, -1, color)

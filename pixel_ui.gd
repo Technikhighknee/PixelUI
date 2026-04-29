@@ -83,7 +83,7 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	if not visible: return
-	_mouse = get_viewport().get_mouse_position()
+	_mouse = to_local(get_viewport().get_mouse_position())
 	queue_redraw()
 
 
@@ -226,6 +226,7 @@ func _interactive_items() -> Array:
 
 func _check_hotkeys(keycode: Key) -> void:
 	for entry: Dictionary in _draw_cache:
+		@warning_ignore("shadowed_variable")
 		var button := _find_hotkey_button(entry["item"] as PixelUIItem, keycode)
 		if button != null:
 			button._click(Rect2(), Vector2(), style)
@@ -236,6 +237,7 @@ func _check_hotkeys(keycode: Key) -> void:
 ## Recursively searches item and any row children for a button with a matching hotkey.
 func _find_hotkey_button(item: PixelUIItem, keycode: Key) -> PixelUIButton:
 	if item is PixelUIButton:
+		@warning_ignore("shadowed_variable")
 		var button := item as PixelUIButton
 		if button.hotkey == keycode:
 			return button
@@ -286,8 +288,8 @@ func anchor(corner: int, margin: float = 4.0) -> PixelUI:
 
 # ── Appearance ────────────────────────────────────────────────────────────────
 
-func with_background(show: bool) -> PixelUI:
-	_show_bg = show
+func with_background(bg_visible: bool) -> PixelUI:
+	_show_bg = bg_visible
 	return self
 
 
@@ -739,6 +741,7 @@ func _emit_warnings() -> void:
 		var item := entry["item"] as PixelUIItem
 		var rect := entry["rect"] as Rect2
 		if item is PixelUIButton:
+			@warning_ignore("shadowed_variable")
 			var button     := item as PixelUIButton
 			var label_text := button.text_getter.call() as String \
 				if button.text_getter.is_valid() else button.text
@@ -756,6 +759,7 @@ func _emit_warnings() -> void:
 
 func _item_type_name(item: PixelUIItem) -> String:
 	if item is PixelUILabel:
+		@warning_ignore("shadowed_variable")
 		var label := item as PixelUILabel
 		match label.variant:
 			PixelUILabel.Variant.HEADING: return "Label[HEADING]"
@@ -778,11 +782,13 @@ func _item_type_name(item: PixelUIItem) -> String:
 
 func _item_content_preview(item: PixelUIItem) -> String:
 	if item is PixelUILabel:
+		@warning_ignore("shadowed_variable")
 		var label      := item as PixelUILabel
 		var label_text := label.text_getter.call() as String \
 			if label.text_getter.is_valid() else label.text
 		return '"%s"' % label_text.left(20)
 	if item is PixelUIButton:
+		@warning_ignore("shadowed_variable")
 		var button     := item as PixelUIButton
 		var label_text := button.text_getter.call() as String \
 			if button.text_getter.is_valid() else button.text
@@ -796,6 +802,7 @@ func _item_content_preview(item: PixelUIItem) -> String:
 func _item_status(item: PixelUIItem, item_style: PixelUIStyle,
 		content_w: float, warnings: Array[String]) -> String:
 	if item is PixelUILabel:
+		@warning_ignore("shadowed_variable")
 		var label      := item as PixelUILabel
 		var font       := item_style.resolve_font(label.variant)
 		var font_size  := item_style.fs_small \
@@ -815,12 +822,14 @@ func _item_status(item: PixelUIItem, item_style: PixelUIStyle,
 
 func _ascii_item_preview(item: PixelUIItem) -> String:
 	if item is PixelUILabel:
+		@warning_ignore("shadowed_variable")
 		var label      := item as PixelUILabel
 		var label_text := label.text_getter.call() as String \
 			if label.text_getter.is_valid() else label.text
 		return " " + (label_text.to_upper() if label.variant == PixelUILabel.Variant.HEADING \
 			else label_text)
 	if item is PixelUIButton:
+		@warning_ignore("shadowed_variable")
 		var button     := item as PixelUIButton
 		var label_text := button.text_getter.call() as String \
 			if button.text_getter.is_valid() else button.text
