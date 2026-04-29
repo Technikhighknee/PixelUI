@@ -8,6 +8,8 @@ extends PixelUIItem
 var value:        float    = 0.0
 var min_val:      float    = 0.0
 var max_val:      float    = 1.0
+## Called when the user right-clicks the slider. Useful for reset-to-default.
+var on_right_click: Callable
 ## 0.0 = continuous. >0 = snap to multiples of step.
 var step:         float    = 0.0
 ## Fires on every value change during drag and on release.

@@ -106,8 +106,10 @@ func _process(_delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	if not visible: return
 
-	# Drag motion
+	# Drag motion — update _mouse from the event directly so the slider tracks
+	# the cursor without the one-frame lag from _process() running after _input().
 	if _drag_item != null and event is InputEventMouseMotion:
+		_mouse = to_local((event as InputEventMouseMotion).position)
 		_drag_item._drag(_drag_rect, _mouse, style)
 		get_viewport().set_input_as_handled()
 		return
@@ -120,7 +122,10 @@ func _input(event: InputEvent) -> void:
 			elif _drag_item != null:
 				_drag_item = null  # end drag
 		elif me.pressed:
-			_handle_scroll(me)
+			if me.button_index == MOUSE_BUTTON_RIGHT:
+				_handle_right_click(_mouse)
+			else:
+				_handle_scroll(me)
 		return
 
 	if _kb_nav and event is InputEventKey:
@@ -180,16 +185,41 @@ func _handle_left_click(mouse: Vector2) -> void:
 			if entry.item._is_draggable():
 				_drag_item = entry.item
 				_drag_rect = entry.rect
+				_drag_item._drag(_drag_rect, mouse, style)  # set value on click, not just drag
 			else:
 				# Check for a draggable child inside a row (e.g. a slider in a row).
 				var drag_target := _find_row_drag_target(entry.item, entry.rect, mouse)
 				if drag_target.size() == 2:
 					_drag_item = drag_target[0] as PixelUIItem
 					_drag_rect = drag_target[1] as Rect2
+					_drag_item._drag(_drag_rect, mouse, style)  # set value on click
 				else:
 					entry.item._click(entry.rect, mouse, style)
 			get_viewport().set_input_as_handled()
 			return
+
+
+func _handle_right_click(mouse: Vector2) -> void:
+	for entry: DrawEntry in _draw_cache:
+		if not entry.item._hit(entry.rect, mouse, style):
+			continue
+		# Check top-level slider.
+		var slider := _slider_at(entry.item, entry.rect, mouse)
+		if slider != null:
+			if slider.on_right_click.is_valid():
+				slider.on_right_click.call()
+			get_viewport().set_input_as_handled()
+			return
+
+
+## Returns the PixelUISlider under mouse, checking top-level and inside rows.
+func _slider_at(item: PixelUIItem, item_rect: Rect2, mouse: Vector2) -> PixelUISlider:
+	if item is PixelUISlider and item._hit(item_rect, mouse, style):
+		return item as PixelUISlider
+	var drag_target := _find_row_drag_target(item, item_rect, mouse)
+	if drag_target.size() == 2 and drag_target[0] is PixelUISlider:
+		return drag_target[0] as PixelUISlider
+	return null
 
 
 ## Returns [item, rect] for the first draggable child found in a row at mouse,

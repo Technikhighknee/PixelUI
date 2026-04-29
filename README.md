@@ -94,7 +94,7 @@ func _process(_delta: float) -> void:
 | `button(text, callback)` | Clickable button. Invalid Callable = disabled. Supports keyboard hotkeys — set `hotkey: Key` on the item returned by `make_button()`. |
 | `toggle(text, callback, initial?)` | Stateful toggle. Callback receives new bool. |
 | `toggle_ext(text, active_getter, callback)` | Toggle whose state is read externally — for radio groups |
-| `slider(min, max, value, callback)` | Draggable value control |
+| `slider(min, max, value, callback)` | Value control. Click anywhere on the track to jump to that value; drag to scrub. Set `on_right_click` on the item returned by `make_slider()` to handle right-click (e.g. reset to default). |
 | `bar(value_getter, color_getter?)` | Read-only filled bar, value 0..1 |
 | `row(children)` | Horizontal layout. Children are items, `make_fixed(item, px)`, or `make_flex(item, weight)` values. |
 | `grid(cols, rows, cell_size, ...)` | 2D clickable cell grid with per-cell draw callback |
