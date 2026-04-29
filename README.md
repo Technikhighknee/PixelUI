@@ -91,7 +91,7 @@ func _process(_delta: float) -> void:
 | `hint(text)` | Very dim small text — keyboard shortcuts, secondary info |
 | `separator()` | Horizontal rule |
 | `spacing(height?)` | Blank vertical space |
-| `button(text, callback)` | Clickable button. Invalid Callable = disabled. |
+| `button(text, callback)` | Clickable button. Invalid Callable = disabled. Supports keyboard hotkeys — set `hotkey: Key` on the item returned by `make_button()`. |
 | `toggle(text, callback, initial?)` | Stateful toggle. Callback receives new bool. |
 | `toggle_ext(text, active_getter, callback)` | Toggle whose state is read externally — for radio groups |
 | `slider(min, max, value, callback)` | Draggable value control |
@@ -169,7 +169,7 @@ var confirmed := await PixelUI.confirm(get_tree(), "Are you sure?", "Yes", "No")
 - Grid drag-and-drop has the API scaffolded (`can_drag`, `on_drop`) but the ghost overlay is not implemented.
 - No text input fields.
 - No accessibility/screen reader support.
-- `layout_report()` line-count detection is approximate for multi-line labels.
+- `layout_report()` line-count detection uses `get_multiline_string_size("A")` as the single-line baseline — accurate for most fonts, may be off for unusual ones.
 
 ---
 
