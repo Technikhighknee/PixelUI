@@ -226,13 +226,28 @@ func _interactive_items() -> Array:
 
 func _check_hotkeys(keycode: Key) -> void:
 	for entry: Dictionary in _draw_cache:
-		var item := entry["item"] as PixelUIItem
-		if item is PixelUIButton:
-			var button := item as PixelUIButton
-			if button.hotkey == keycode:
-				button._click(entry["rect"] as Rect2, _mouse, style)
-				get_viewport().set_input_as_handled()
-				return
+		var button := _find_hotkey_button(entry["item"] as PixelUIItem, keycode)
+		if button != null:
+			button._click(Rect2(), Vector2(), style)
+			get_viewport().set_input_as_handled()
+			return
+
+
+## Recursively searches item and any row children for a button with a matching hotkey.
+func _find_hotkey_button(item: PixelUIItem, keycode: Key) -> PixelUIButton:
+	if item is PixelUIButton:
+		var button := item as PixelUIButton
+		if button.hotkey == keycode:
+			return button
+	if item is PixelUIRow:
+		for child_entry: Variant in (item as PixelUIRow).children:
+			var child: PixelUIItem = child_entry as PixelUIItem \
+				if child_entry is PixelUIItem \
+				else (child_entry as Dictionary)["item"] as PixelUIItem
+			var found := _find_hotkey_button(child, keycode)
+			if found != null:
+				return found
+	return null
 
 
 func _cache_index_of(item: PixelUIItem) -> int:
