@@ -181,9 +181,33 @@ func _handle_left_click(mouse: Vector2) -> void:
 				_drag_item = entry.item
 				_drag_rect = entry.rect
 			else:
-				entry.item._click(entry.rect, mouse, style)
+				# Check for a draggable child inside a row (e.g. a slider in a row).
+				var drag_target := _find_row_drag_target(entry.item, entry.rect, mouse)
+				if drag_target.size() == 2:
+					_drag_item = drag_target[0] as PixelUIItem
+					_drag_rect = drag_target[1] as Rect2
+				else:
+					entry.item._click(entry.rect, mouse, style)
 			get_viewport().set_input_as_handled()
 			return
+
+
+## Returns [item, rect] for the first draggable child found in a row at mouse,
+## or an empty array if none. Only searches one level deep.
+func _find_row_drag_target(item: PixelUIItem, item_rect: Rect2,
+		mouse: Vector2) -> Array:
+	if not item is PixelUIRow:
+		return []
+	var row    := item as PixelUIRow
+	var widths := row._compute_widths(item_rect.size.x)
+	var child_x := item_rect.position.x
+	for i: int in row.children.size():
+		var child      := row._item(row.children[i])
+		var child_rect := Rect2(child_x, item_rect.position.y, widths[i], item_rect.size.y)
+		if child._is_draggable() and child._hit(child_rect, mouse, style):
+			return [child, child_rect]
+		child_x += widths[i]
+	return []
 
 
 func _handle_scroll(me: InputEventMouseButton) -> void:
