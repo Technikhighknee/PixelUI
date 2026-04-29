@@ -22,8 +22,8 @@ var text:         String   = ""
 ## Called every frame to produce display text. Overrides text.
 var text_getter:  Callable
 
-## Explicit colour. Color() (default-constructed) means "use style default".
-var color:        Color    = Color()
+## Explicit colour. Alpha < 0 means "use style default" (matches PixelUI.NO_COLOR).
+var color:        Color    = Color(0.0, 0.0, 0.0, -1.0)
 ## Called every frame to produce display colour. Overrides color.
 var color_getter: Callable
 
@@ -90,7 +90,7 @@ func _resolve_text() -> String:
 func _resolve_color(style: PixelUIStyle) -> Color:
 	if color_getter.is_valid():
 		return color_getter.call() as Color
-	if color != Color():
+	if color.a >= 0.0:
 		return color
 	match variant:
 		Variant.HEADING: return style.col_heading

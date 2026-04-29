@@ -56,7 +56,7 @@ static func begin(id: StringName, pos: Vector2, width: float,
 
 
 ## Add a static or coloured text label to the current panel.
-static func text(content: String, col: Color = Color()) -> void:
+static func text(content: String, col: Color = PixelUI.NO_COLOR) -> void:
 	if _active: _active.label(content, col)
 
 

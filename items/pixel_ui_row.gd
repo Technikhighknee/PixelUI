@@ -4,13 +4,22 @@ extends PixelUIItem
 ## Horizontal flex layout. See REQUIREMENTS.md §5.7.
 ##
 ## Each entry in children is one of:
-##   PixelUIItem                          → flex weight 1 (equal share)
-##   {item: PixelUIItem, flex: float}     → proportional share of remaining space
-##   {item: PixelUIItem, width: float}    → fixed pixel width
+##   PixelUIItem              → flex weight 1 (equal share)
+##   RowChild (width >= 0)    → fixed pixel width
+##   RowChild (width < 0)     → proportional flex share by weight
 ##
-## Fixed-width entries are allocated first.
-## Remaining space is distributed among flex entries proportionally.
-## Invisible children (visible_when returning false) occupy zero width.
+## Use PixelUI.make_fixed() and PixelUI.make_flex() to build RowChild values.
+## Fixed children are allocated first; flex children share remaining space.
+## Invisible children contribute zero width.
+
+
+class RowChild:
+	var item:   PixelUIItem
+	var width:  float  ## >= 0 = fixed px; -1.0 = flex
+	var weight: float  ## flex share, used only when width < 0
+
+	func _init(i: PixelUIItem, w: float, wt: float = 1.0) -> void:
+		item = i; width = w; weight = wt
 
 
 var children: Array = []
@@ -66,32 +75,31 @@ func render(canvas: CanvasItem, style: PixelUIStyle, font: Font,
 
 func _item(entry: Variant) -> PixelUIItem:
 	if entry is PixelUIItem: return entry as PixelUIItem
-	return (entry as Dictionary)["item"] as PixelUIItem
+	return (entry as RowChild).item
 
 
 func _compute_widths(total_w: float) -> Array[float]:
 	var fixed_total: float = 0.0
 	var flex_total:  float = 0.0
-	for entry in children:
+	for entry: Variant in children:
 		if not _item(entry).is_visible(): continue
 		if entry is PixelUIItem:
 			flex_total += 1.0
 		else:
-			var dict := entry as Dictionary
-			if dict.has("width"): fixed_total += float(dict["width"])
-			else:                 flex_total  += float(dict.get("flex", 1.0))
+			var rc := entry as RowChild
+			if rc.width >= 0.0: fixed_total += rc.width
+			else:               flex_total  += rc.weight
 
 	var flex_unit := maxf(total_w - fixed_total, 0.0) / flex_total if flex_total > 0.0 else 0.0
 
 	var widths: Array[float] = []
-	for entry in children:
+	for entry: Variant in children:
 		if not _item(entry).is_visible():
 			widths.append(0.0)
 			continue
 		if entry is PixelUIItem:
 			widths.append(flex_unit)
 		else:
-			var dict := entry as Dictionary
-			widths.append(float(dict["width"]) if dict.has("width") \
-				else float(dict.get("flex", 1.0)) * flex_unit)
+			var rc := entry as RowChild
+			widths.append(rc.width if rc.width >= 0.0 else rc.weight * flex_unit)
 	return widths

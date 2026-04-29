@@ -51,6 +51,20 @@ const EDGE_RIGHT:  int = 1
 const EDGE_TOP:    int = 2
 const EDGE_BOTTOM: int = 3
 
+## Sentinel value meaning "no explicit color — use style default".
+## Used as the default for label color parameters.
+const NO_COLOR: Color = Color(0.0, 0.0, 0.0, -1.0)
+
+
+# ── DrawEntry: typed _draw_cache entry ────────────────────────────────────────
+
+class DrawEntry:
+	var item: PixelUIItem
+	var rect: Rect2
+
+	func _init(i: PixelUIItem, r: Rect2) -> void:
+		item = i; rect = r
+
 
 # ── Instance state ────────────────────────────────────────────────────────────
 
@@ -64,13 +78,15 @@ var _show_bg:     bool   = true
 var _modal_dim:   float  = 0.0
 var _mouse:       Vector2 = Vector2(-9999.0, -9999.0)
 ## Rebuilt every _draw(). Used by _input() for hit-testing.
-var _draw_cache:  Array  = []     # Array[{item, rect}]
+var _draw_cache:  Array[DrawEntry] = []
 ## Keyboard navigation
 var _kb_nav:      bool   = false
 var _focus_idx:   int    = -1
 ## Drag state
 var _drag_item:   PixelUIItem = null
 var _drag_rect:   Rect2
+## True when items have changed since the last _emit_warnings() pass.
+var _warnings_dirty: bool = true
 
 
 func _init(panel_width: float = 80.0) -> void:
@@ -134,11 +150,7 @@ func _draw() -> void:
 		visible_items.append(item)
 		heights.append(item.height(style, content_w))
 
-	var total_height := style.padding * 2.0
-	for item_height: float in heights:
-		total_height += item_height + style.item_gap
-	if not heights.is_empty():
-		total_height -= style.item_gap
+	var total_height := _compute_height()
 
 	if _show_bg:
 		draw_rect(Rect2(0.0, 0.0, _width, total_height), style.col_bg)
@@ -149,47 +161,44 @@ func _draw() -> void:
 	for i: int in visible_items.size():
 		var item := visible_items[i]
 		var rect := Rect2(content_x, cursor_y, content_w, heights[i])
-		_draw_cache.append({"item": item, "rect": rect})
+		_draw_cache.append(DrawEntry.new(item, rect))
 		item.render(self, style, font, rect, _mouse)
 		if _kb_nav and _focus_idx == _cache_index_of(item):
 			draw_rect(rect.grow(1.0), style.col_focus, false, 1.0)
 		cursor_y += heights[i] + style.item_gap
 
-	if OS.is_debug_build():
+	if OS.is_debug_build() and _warnings_dirty:
 		_emit_warnings()
+		_warnings_dirty = false
 
 
 # ── Input helpers ─────────────────────────────────────────────────────────────
 
 func _handle_left_click(mouse: Vector2) -> void:
-	for entry: Dictionary in _draw_cache:
-		var item := entry["item"] as PixelUIItem
-		var rect := entry["rect"] as Rect2
-		if item._hit(rect, mouse, style):
-			if item._is_draggable():
-				_drag_item = item
-				_drag_rect = rect
+	for entry: DrawEntry in _draw_cache:
+		if entry.item._hit(entry.rect, mouse, style):
+			if entry.item._is_draggable():
+				_drag_item = entry.item
+				_drag_rect = entry.rect
 			else:
-				item._click(rect, mouse, style)
+				entry.item._click(entry.rect, mouse, style)
 			get_viewport().set_input_as_handled()
 			return
 
 
 func _handle_scroll(me: InputEventMouseButton) -> void:
-	for entry: Dictionary in _draw_cache:
-		var item := entry["item"] as PixelUIItem
-		var rect := entry["rect"] as Rect2
-		if not rect.has_point(_mouse): continue
+	for entry: DrawEntry in _draw_cache:
+		if not entry.rect.has_point(_mouse): continue
 		var line_h := style.line_height * 3.0
-		if item is PixelUIScroll:
-			var s_item := item as PixelUIScroll
+		if entry.item is PixelUIScroll:
+			var s_item := entry.item as PixelUIScroll
 			s_item.scroll_by(
 				line_h if me.button_index == MOUSE_BUTTON_WHEEL_DOWN else -line_h,
-				style, s_item.content_width(rect.size.x))
+				style, s_item.content_width(entry.rect.size.x))
 			get_viewport().set_input_as_handled()
 			return
-		if item is PixelUIList:
-			(item as PixelUIList).scroll_by(
+		if entry.item is PixelUIList:
+			(entry.item as PixelUIList).scroll_by(
 				line_h if me.button_index == MOUSE_BUTTON_WHEEL_DOWN else -line_h)
 			get_viewport().set_input_as_handled()
 			return
@@ -206,28 +215,27 @@ func _handle_key(ke: InputEventKey) -> void:
 			get_viewport().set_input_as_handled()
 		KEY_ENTER, KEY_SPACE:
 			if _focus_idx >= 0 and _focus_idx < interactive.size():
-				var entry := interactive[_focus_idx] as Dictionary
-				(entry["item"] as PixelUIItem)._click(
-					entry["rect"] as Rect2, _mouse, style)
+				var entry := interactive[_focus_idx]
+				entry.item._click(entry.rect, _mouse, style)
 			get_viewport().set_input_as_handled()
 		KEY_ESCAPE:
 			get_viewport().set_input_as_handled()
 
 
-func _interactive_items() -> Array:
-	var out := []
-	for entry: Dictionary in _draw_cache:
-		if entry["item"] is PixelUIButton or \
-				entry["item"] is PixelUISlider or \
-				entry["item"] is PixelUIGrid:
+func _interactive_items() -> Array[DrawEntry]:
+	var out: Array[DrawEntry] = []
+	for entry: DrawEntry in _draw_cache:
+		if entry.item is PixelUIButton or \
+				entry.item is PixelUISlider or \
+				entry.item is PixelUIGrid:
 			out.append(entry)
 	return out
 
 
 func _check_hotkeys(keycode: Key) -> void:
-	for entry: Dictionary in _draw_cache:
+	for entry: DrawEntry in _draw_cache:
 		@warning_ignore("shadowed_variable")
-		var button := _find_hotkey_button(entry["item"] as PixelUIItem, keycode)
+		var button := _find_hotkey_button(entry.item, keycode)
 		if button != null:
 			button._click(Rect2(), Vector2(), style)
 			get_viewport().set_input_as_handled()
@@ -245,7 +253,7 @@ func _find_hotkey_button(item: PixelUIItem, keycode: Key) -> PixelUIButton:
 		for child_entry: Variant in (item as PixelUIRow).children:
 			var child: PixelUIItem = child_entry as PixelUIItem \
 				if child_entry is PixelUIItem \
-				else (child_entry as Dictionary)["item"] as PixelUIItem
+				else (child_entry as PixelUIRow.RowChild).item
 			var found := _find_hotkey_button(child, keycode)
 			if found != null:
 				return found
@@ -254,7 +262,7 @@ func _find_hotkey_button(item: PixelUIItem, keycode: Key) -> PixelUIButton:
 
 func _cache_index_of(item: PixelUIItem) -> int:
 	for i: int in _draw_cache.size():
-		if _draw_cache[i]["item"] == item:
+		if _draw_cache[i].item == item:
 			return i
 	return -1
 
@@ -334,6 +342,7 @@ func fade_in(duration: float = 0.15) -> PixelUI:
 func clear() -> PixelUI:
 	_items.clear()
 	_warned.clear()
+	_warnings_dirty = true
 	return self
 
 
@@ -341,6 +350,7 @@ func clear() -> PixelUI:
 ## created with make_* factories that need post-construction configuration.
 func add_item(item: PixelUIItem) -> PixelUI:
 	_items.append(item)
+	_warnings_dirty = true
 	return self
 
 
@@ -363,11 +373,11 @@ func heading(text: String) -> PixelUI:
 	_items.append(make_heading(text))
 	return self
 
-func label(text: String, col: Color = Color()) -> PixelUI:
+func label(text: String, col: Color = NO_COLOR) -> PixelUI:
 	_items.append(make_label(text, col))
 	return self
 
-func label_live(getter: Callable, col: Color = Color()) -> PixelUI:
+func label_live(getter: Callable, col: Color = NO_COLOR) -> PixelUI:
 	_items.append(make_label_live(getter, col))
 	return self
 
@@ -460,16 +470,16 @@ func make_heading(text: String) -> PixelUILabel:
 	item.variant = PixelUILabel.Variant.HEADING
 	return item
 
-func make_label(text: String, col: Color = Color()) -> PixelUILabel:
-	var item := PixelUILabel.new()
-	item.text = text
-	if col != Color(): item.color = col
+func make_label(text: String, col: Color = NO_COLOR) -> PixelUILabel:
+	var item   := PixelUILabel.new()
+	item.text   = text
+	item.color  = col
 	return item
 
-func make_label_live(getter: Callable, col: Color = Color()) -> PixelUILabel:
+func make_label_live(getter: Callable, col: Color = NO_COLOR) -> PixelUILabel:
 	var item         := PixelUILabel.new()
 	item.text_getter  = getter
-	if col != Color(): item.color = col
+	item.color        = col
 	return item
 
 func make_label_colored(text_getter: Callable, color_getter: Callable) -> PixelUILabel:
@@ -495,16 +505,16 @@ func make_row(children: Array) -> PixelUIRow:
 	return r
 
 
-## Convenience: wrap an item with a fixed pixel width for use in row().
+## Wrap an item with a fixed pixel width for use in row().
 ## ui.row([ui.make_fixed(btn, 14.0), label, ui.make_fixed(btn, 14.0)])
-func make_fixed(item: PixelUIItem, width: float) -> Dictionary:
-	return {item = item, width = width}
+func make_fixed(item: PixelUIItem, width: float) -> PixelUIRow.RowChild:
+	return PixelUIRow.RowChild.new(item, width)
 
 
-## Convenience: wrap an item with a proportional flex weight for use in row().
+## Wrap an item with a proportional flex weight for use in row().
 ## Omit weight to get the default flex share of 1.0.
-func make_flex(item: PixelUIItem, weight: float = 1.0) -> Dictionary:
-	return {item = item, flex = weight}
+func make_flex(item: PixelUIItem, weight: float = 1.0) -> PixelUIRow.RowChild:
+	return PixelUIRow.RowChild.new(item, -1.0, weight)
 
 func make_button(text: String, on_press: Callable) -> PixelUIButton:
 	var item     := PixelUIButton.new()
@@ -610,16 +620,15 @@ func layout_report() -> String:
 	var warnings: Array[String] = []
 
 	for i: int in _draw_cache.size():
-		var entry     := _draw_cache[i] as Dictionary
-		var item      := entry["item"] as PixelUIItem
-		var rect      := entry["rect"] as Rect2
+		var entry     := _draw_cache[i]
 		var prefix    := "└" if i == _draw_cache.size() - 1 else "├"
-		var type_name := _item_type_name(item)
-		var content   := _item_content_preview(item)
-		var status    := _item_status(item, style, content_w, warnings)
+		var type_name := _item_type_name(entry.item)
+		var content   := _item_content_preview(entry.item)
+		var status    := _item_status(entry.item, style, content_w, warnings)
 		report += "%s %-18s %-24s (%.0f,%.0f %.0f×%.0f) %s\n" % \
 			[prefix, type_name, content,
-			 rect.position.x, rect.position.y, rect.size.x, rect.size.y,
+			 entry.rect.position.x, entry.rect.position.y,
+			 entry.rect.size.x, entry.rect.size.y,
 			 status]
 
 	if warnings.is_empty():
@@ -642,14 +651,13 @@ func ascii_render() -> String:
 	var sep_line := "├" + "─".repeat(cols - 2) + "┤"
 	var out      := top + "\n"
 
-	for entry: Dictionary in _draw_cache:
-		var item := entry["item"] as PixelUIItem
-		if item is PixelUISep:
-			var sp := item as PixelUISep
+	for entry: DrawEntry in _draw_cache:
+		if entry.item is PixelUISep:
+			var sp := entry.item as PixelUISep
 			out += (sep_line if sp.spacer_height == 0.0 else \
 				"│" + " ".repeat(inner) + "│") + "\n"
 		else:
-			var preview := _ascii_item_preview(item)
+			var preview := _ascii_item_preview(entry.item)
 			var padded  := preview.left(inner)
 			padded      = padded + " ".repeat(maxi(inner - padded.length(), 0))
 			out += "│" + padded + "│\n"
@@ -737,17 +745,15 @@ func _compute_height() -> float:
 
 func _emit_warnings() -> void:
 	var font := style.resolve_font(PixelUILabel.Variant.BODY)
-	for entry: Dictionary in _draw_cache:
-		var item := entry["item"] as PixelUIItem
-		var rect := entry["rect"] as Rect2
-		if item is PixelUIButton:
+	for entry: DrawEntry in _draw_cache:
+		if entry.item is PixelUIButton:
 			@warning_ignore("shadowed_variable")
-			var button     := item as PixelUIButton
+			var button     := entry.item as PixelUIButton
 			var label_text := button.text_getter.call() as String \
 				if button.text_getter.is_valid() else button.text
 			var font_size  := style.fs_body
-			var show_dot   := button.is_toggle and rect.size.x >= PixelUIButton.DOT_MIN_W
-			var max_text_w := rect.size.x \
+			var show_dot   := button.is_toggle and entry.rect.size.x >= PixelUIButton.DOT_MIN_W
+			var max_text_w := entry.rect.size.x \
 				- (PixelUIButton.PAD_LEFT_DOT if show_dot else PixelUIButton.PAD_LEFT) \
 				- PixelUIButton.PAD_RIGHT
 			if font.get_string_size(label_text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > max_text_w:
@@ -794,7 +800,7 @@ func _item_content_preview(item: PixelUIItem) -> String:
 			if button.text_getter.is_valid() else button.text
 		var state_tag  := ""
 		if button.is_toggle:
-			state_tag = " [on]" if button._active() else " [off]"
+			state_tag = " [on]" if button._resolve_active() else " [off]"
 		return '"%s"%s' % [label_text.left(18), state_tag]
 	return ""
 
@@ -834,7 +840,7 @@ func _ascii_item_preview(item: PixelUIItem) -> String:
 		var label_text := button.text_getter.call() as String \
 			if button.text_getter.is_valid() else button.text
 		if button.is_toggle:
-			return " %s %s" % ["●" if button._active() else "○", label_text]
+			return " %s %s" % ["●" if button._resolve_active() else "○", label_text]
 		return " [%s]" % label_text
 	if item is PixelUIRow:    return " [row]"
 	if item is PixelUIGrid:   return " [grid]"
