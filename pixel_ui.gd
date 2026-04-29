@@ -690,8 +690,9 @@ static func confirm(scene_tree: SceneTree, message: String,
 	layer.layer = 98
 	scene_tree.current_scene.add_child(layer)
 
-	var resolved := false
-	var result   := false
+	# Arrays so lambda captures share the same reference, not a copy.
+	var resolved := [false]
+	var result   := [false]
 
 	var ui := PixelUI.new(160.0)
 	ui.style = PixelUIStyle.dark()
@@ -701,20 +702,20 @@ static func confirm(scene_tree: SceneTree, message: String,
 	ui.spacing(3.0)
 	ui.row([
 		ui.make_button(
-			confirm_label, 
-			func() -> void: result = true; resolved = true
+			confirm_label,
+			func() -> void: result[0] = true; resolved[0] = true
 		),
 		ui.make_button(
-			cancel_label, 
-			func() -> void: result = false; resolved = true
+			cancel_label,
+			func() -> void: resolved[0] = true
 		),
 	])
 	ui.center()
 
-	while not resolved:
+	while not resolved[0]:
 		await scene_tree.process_frame
 	layer.queue_free()
-	return result
+	return result[0]
 
 
 # ── Internal ──────────────────────────────────────────────────────────────────
