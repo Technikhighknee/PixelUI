@@ -30,16 +30,42 @@ var color_getter: Callable
 ## Text alignment within the item's allocated rect.
 var align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT
 
+# ── Height cache ──────────────────────────────────────────────────────────────
+# get_multiline_string_size() is expensive. Cache the result and only
+# recompute when the inputs that affect height actually change.
+var _cached_height:        float = -1.0
+var _cached_text:          String = ""
+var _cached_content_width: float = -1.0
+var _cached_font_size:     int   = -1
+var _cached_line_height:   float = -1.0
+
 
 func height(style: PixelUIStyle, content_width: float) -> float:
 	var label_text := _resolve_text()
+	var font_size  := _font_size(style)
+
+	if _cached_height >= 0.0             \
+			and label_text    == _cached_text          \
+			and content_width == _cached_content_width \
+			and font_size     == _cached_font_size     \
+			and style.line_height == _cached_line_height:
+		return _cached_height
+
+	var result: float
 	if label_text.is_empty():
-		return style.line_height
-	var font      := style.resolve_font(variant)
-	var font_size := _font_size(style)
-	var text_size := font.get_multiline_string_size(
-		label_text, HORIZONTAL_ALIGNMENT_LEFT, content_width, font_size)
-	return text_size.y + (style.line_height - font_size)
+		result = style.line_height
+	else:
+		var font      := style.resolve_font(variant)
+		var text_size := font.get_multiline_string_size(
+			label_text, HORIZONTAL_ALIGNMENT_LEFT, content_width, font_size)
+		result = text_size.y + (style.line_height - font_size)
+
+	_cached_height        = result
+	_cached_text          = label_text
+	_cached_content_width = content_width
+	_cached_font_size     = font_size
+	_cached_line_height   = style.line_height
+	return result
 
 
 func render(canvas: CanvasItem, style: PixelUIStyle, _font: Font,
