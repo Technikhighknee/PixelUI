@@ -16,7 +16,7 @@ If you find it useful, you are welcome to watch the repo. But I would not build 
 
 There are no branches, no pull requests, no review process. Everything goes directly to main. If you are watching the repo, main is always the current state of what I am using in my game — no more, no less.
 
-It is released under the Unlicense — public domain, no strings attached. Fork it, change it, strip out everything you don't need, call it something else entirely. I am not building a following here. I am building a game.
+It is released under CC0 — public domain, no strings attached. Fork it, change it, strip out everything you don't need, call it something else entirely. I am not building a following here. I am building a game.
 
 ---
 
@@ -175,4 +175,4 @@ var confirmed := await PixelUI.confirm(get_tree(), "Are you sure?", "Yes", "No")
 
 ## License
 
-Public domain — see `UNLICENSE`.
+Public domain — see `LICENSE` (CC0 1.0 Universal).
